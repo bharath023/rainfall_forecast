@@ -17,7 +17,8 @@ class OpenMeteoApi {
   }
 
   Future<List<Place>> searchPlaces(String query) async {
-    final json = await _get(Uri.https('geocoding-api.open-meteo.com', '/v1/search', {
+    final json =
+        await _get(Uri.https('geocoding-api.open-meteo.com', '/v1/search', {
       'name': query,
       'count': '10',
       'language': 'en',

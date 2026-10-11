@@ -24,7 +24,8 @@ class TodayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final blended = blendAt(data.daily, 0);
-    final members = data.ensembleDaily.isNotEmpty ? data.ensembleDaily[0] : <double>[];
+    final members =
+        data.ensembleDaily.isNotEmpty ? data.ensembleDaily[0] : <double>[];
     final theme = Theme.of(context);
     return Card(
       child: Padding(
@@ -39,8 +40,10 @@ class TodayCard extends StatelessWidget {
                 children: [
                   Text('Today', style: theme.textTheme.labelLarge),
                   Text(_mm(blended), style: theme.textTheme.headlineMedium),
-                  Text('Chance of rain (≥1 mm): ${_pct(probability(members, 1))}'),
-                  Text('Model agreement: ${agreementLabel(modelSpreadAt(data.daily, 0))}'),
+                  Text(
+                      'Chance of rain (≥1 mm): ${_pct(probability(members, 1))}'),
+                  Text(
+                      'Model agreement: ${agreementLabel(modelSpreadAt(data.daily, 0))}'),
                 ],
               ),
             ),
@@ -109,8 +112,10 @@ class HourlyChart extends StatelessWidget {
                 gridData: const FlGridData(drawVerticalLine: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -169,8 +174,9 @@ class DayTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final blended = blendAt(data.daily, index);
-    final members =
-        index < data.ensembleDaily.length ? data.ensembleDaily[index] : <double>[];
+    final members = index < data.ensembleDaily.length
+        ? data.ensembleDaily[index]
+        : <double>[];
     final p1 = probability(members, 1);
     final p10 = probability(members, 10);
 
@@ -201,7 +207,8 @@ class DayTile extends StatelessWidget {
               dense: true,
               leading: const Icon(Icons.stacked_line_chart, size: 18),
               title: const Text('Ensemble likely range (10–90%)'),
-              subtitle: Text('${members.length} members · ECMWF ENS + NOAA GEFS'),
+              subtitle:
+                  Text('${members.length} members · ECMWF ENS + NOAA GEFS'),
               trailing: Text(
                   '${percentile(members, 10)!.toStringAsFixed(1)}–${percentile(members, 90)!.toStringAsFixed(1)} mm'),
             ),

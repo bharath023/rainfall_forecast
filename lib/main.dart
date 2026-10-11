@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'location.dart';
 import 'models.dart';
+import 'radar.dart';
 import 'storage.dart';
 import 'widgets.dart';
 
@@ -16,7 +17,8 @@ class RainfallApp extends StatelessWidget {
     return MaterialApp(
       title: 'Rainfall Forecast',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF1565C0), useMaterial3: true),
+      theme: ThemeData(
+          colorSchemeSeed: const Color(0xFF1565C0), useMaterial3: true),
       darkTheme: ThemeData(
         colorSchemeSeed: const Color(0xFF1565C0),
         brightness: Brightness.dark,
@@ -36,12 +38,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const _fallbackPlace = Place(
-      name: 'Bengaluru', admin: 'Karnataka', country: 'India', lat: 12.97, lon: 77.59);
+      name: 'Bengaluru',
+      admin: 'Karnataka',
+      country: 'India',
+      lat: 12.97,
+      lon: 77.59);
 
   final _api = OpenMeteoApi();
   Place? _place;
   Future<ForecastData>? _future;
   bool _locating = false;
+  int _tab = 0;
 
   @override
   void initState() {
@@ -85,8 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return true;
     } catch (e) {
       if (!quiet && mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Could not get location: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not get location: $e')));
       }
       return false;
     } finally {
@@ -107,59 +114,82 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_place?.label ?? 'Finding location…', overflow: TextOverflow.ellipsis),
+        title: Text(_place?.label ?? 'Finding location…',
+            overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
             tooltip: 'My location',
             icon: _locating
                 ? const SizedBox(
-                    width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.my_location),
             onPressed: _locating ? null : _useMyLocation,
           ),
-          IconButton(tooltip: 'Search', icon: const Icon(Icons.search), onPressed: _pickPlace),
+          IconButton(
+              tooltip: 'Search',
+              icon: const Icon(Icons.search),
+              onPressed: _pickPlace),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _reload,
-        child: FutureBuilder<ForecastData>(
-          future: _future,
-          builder: (context, snap) {
-            if (_future == null || snap.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snap.hasError) {
-              return ListView(children: [
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text('Could not load forecast:\n${snap.error}\n\nPull down to retry.'),
+      body: _tab == 1 && _place != null
+          ? RadarView(place: _place!)
+          : _forecastBody(),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) => setState(() => _tab = i),
+        destinations: const [
+          NavigationDestination(
+              icon: Icon(Icons.water_drop_outlined), label: 'Forecast'),
+          NavigationDestination(icon: Icon(Icons.radar), label: 'Radar'),
+        ],
+      ),
+    );
+  }
+
+  Widget _forecastBody() {
+    return RefreshIndicator(
+      onRefresh: _reload,
+      child: FutureBuilder<ForecastData>(
+        future: _future,
+        builder: (context, snap) {
+          if (_future == null || snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return ListView(children: [
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                    'Could not load forecast:\n${snap.error}\n\nPull down to retry.'),
+              ),
+            ]);
+          }
+          final data = snap.data!;
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              TodayCard(data: data),
+              HourlyChart(data: data),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                child: Text('Daily · weighted blend of 6 models',
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              for (var i = 0; i < data.days.length; i++)
+                DayTile(data: data, index: i),
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Data: Open-Meteo.com · ECMWF (CC-BY 4.0), NOAA, DWD, ECCC, JMA',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11),
                 ),
-              ]);
-            }
-            final data = snap.data!;
-            return ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                TodayCard(data: data),
-                HourlyChart(data: data),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-                  child: Text('Daily · weighted blend of 6 models',
-                      style: Theme.of(context).textTheme.titleMedium),
-                ),
-                for (var i = 0; i < data.days.length; i++) DayTile(data: data, index: i),
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Data: Open-Meteo.com · ECMWF (CC-BY 4.0), NOAA, DWD, ECCC, JMA',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 11),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -174,8 +204,9 @@ class _PlaceSearch extends SearchDelegate<Place?> {
       [IconButton(icon: const Icon(Icons.clear), onPressed: () => query = '')];
 
   @override
-  Widget buildLeading(BuildContext context) =>
-      IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => close(context, null));
+  Widget buildLeading(BuildContext context) => IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () => close(context, null));
 
   @override
   Widget buildResults(BuildContext context) => _results();

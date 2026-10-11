@@ -20,7 +20,9 @@ double? blendAt(Map<String, List<double?>> series, int i) {
 double? modelSpreadAt(Map<String, List<double?>> series, int i) {
   final values = [
     for (final m in deterministicModels)
-      if (series[m.id] != null && i < series[m.id]!.length && series[m.id]![i] != null)
+      if (series[m.id] != null &&
+          i < series[m.id]!.length &&
+          series[m.id]![i] != null)
         series[m.id]![i]!,
   ];
   if (values.length < 2) return null;

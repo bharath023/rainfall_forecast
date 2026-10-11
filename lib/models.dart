@@ -16,7 +16,8 @@ class WeatherModel {
 
 const deterministicModels = <WeatherModel>[
   WeatherModel('ecmwf_ifs025', 'ECMWF IFS', 1.0, Color(0xFF1E88E5)),
-  WeatherModel('ecmwf_aifs025_single', 'ECMWF AIFS (AI)', 1.0, Color(0xFF8E24AA)),
+  WeatherModel(
+      'ecmwf_aifs025_single', 'ECMWF AIFS (AI)', 1.0, Color(0xFF8E24AA)),
   WeatherModel('icon_seamless', 'DWD ICON', 0.8, Color(0xFF43A047)),
   WeatherModel('gfs_seamless', 'NOAA GFS', 0.7, Color(0xFFE53935)),
   WeatherModel('gem_seamless', 'Canada GEM', 0.6, Color(0xFFFB8C00)),
@@ -47,8 +48,13 @@ class Place {
       .where((s) => s.isNotEmpty)
       .join(', ');
 
-  Map<String, dynamic> toJson() =>
-      {'name': name, 'admin': admin, 'country': country, 'lat': lat, 'lon': lon};
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'admin': admin,
+        'country': country,
+        'lat': lat,
+        'lon': lon
+      };
 
   factory Place.fromJson(Map<String, dynamic> j) => Place(
         name: j['name'] as String,

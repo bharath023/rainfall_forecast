@@ -41,7 +41,8 @@ class LocationService {
   /// back to plain coordinates if it fails.
   static Future<Place> _reverseGeocode(double lat, double lon) async {
     try {
-      final uri = Uri.https('api.bigdatacloud.net', '/data/reverse-geocode-client', {
+      final uri =
+          Uri.https('api.bigdatacloud.net', '/data/reverse-geocode-client', {
         'latitude': '$lat',
         'longitude': '$lon',
         'localityLanguage': 'en',
