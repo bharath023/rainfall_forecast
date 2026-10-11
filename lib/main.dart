@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'alerts.dart';
 import 'api.dart';
 import 'location.dart';
 import 'models.dart';
@@ -7,7 +8,11 @@ import 'radar.dart';
 import 'storage.dart';
 import 'widgets.dart';
 
-void main() => runApp(const RainfallApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await RainAlerts.init();
+  runApp(const RainfallApp());
+}
 
 class RainfallApp extends StatelessWidget {
   const RainfallApp({super.key});
@@ -48,12 +53,34 @@ class _HomeScreenState extends State<HomeScreen> {
   Place? _place;
   Future<ForecastData>? _future;
   bool _locating = false;
+  bool _alertsOn = false;
   int _tab = 0;
 
   @override
   void initState() {
     super.initState();
     _init();
+    Storage.alertsEnabled().then((on) {
+      if (mounted) setState(() => _alertsOn = on);
+    });
+  }
+
+  Future<void> _toggleAlerts() async {
+    final messenger = ScaffoldMessenger.of(context);
+    String message;
+    if (_alertsOn) {
+      await RainAlerts.disable();
+      message = 'Rain alerts off';
+    } else if (await RainAlerts.enable()) {
+      message = 'Rain alerts on for ${_place?.name ?? 'your place'} '
+          '(checked about every 30 min)';
+    } else {
+      message = 'Notification permission was denied';
+    }
+    final on = await Storage.alertsEnabled();
+    if (!mounted) return;
+    setState(() => _alertsOn = on);
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Last viewed place if saved, otherwise try GPS, otherwise a default city.
@@ -127,6 +154,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 : const Icon(Icons.my_location),
             onPressed: _locating ? null : _useMyLocation,
           ),
+          if (RainAlerts.isSupported)
+            IconButton(
+              tooltip:
+                  _alertsOn ? 'Turn off rain alerts' : 'Turn on rain alerts',
+              icon: Icon(_alertsOn
+                  ? Icons.notifications_active
+                  : Icons.notifications_none),
+              onPressed: _toggleAlerts,
+            ),
           IconButton(
               tooltip: 'Search',
               icon: const Icon(Icons.search),
