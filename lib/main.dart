@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'location.dart';
 import 'models.dart';
+import 'storage.dart';
 import 'widgets.dart';
 
 void main() => runApp(const RainfallApp());
@@ -33,24 +35,62 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _api = OpenMeteoApi();
-  Place _place = const Place(
+  static const _fallbackPlace = Place(
       name: 'Bengaluru', admin: 'Karnataka', country: 'India', lat: 12.97, lon: 77.59);
-  late Future<ForecastData> _future;
+
+  final _api = OpenMeteoApi();
+  Place? _place;
+  Future<ForecastData>? _future;
+  bool _locating = false;
 
   @override
   void initState() {
     super.initState();
-    _future = _api.fetchForecast(_place);
+    _init();
+  }
+
+  /// Last viewed place if saved, otherwise try GPS, otherwise a default city.
+  Future<void> _init() async {
+    final saved = await Storage.loadPlace();
+    if (saved != null) {
+      await _setPlace(saved);
+    } else if (!await _useMyLocation(quiet: true)) {
+      await _setPlace(_fallbackPlace);
+    }
+  }
+
+  Future<void> _setPlace(Place place) async {
+    _place = place;
+    await Storage.savePlace(place);
+    await _reload();
   }
 
   Future<void> _reload() async {
-    final f = _api.fetchForecast(_place);
+    final place = _place;
+    if (place == null) return;
+    final f = _api.fetchForecast(place);
     setState(() => _future = f);
     try {
       await f;
     } catch (_) {
       // FutureBuilder shows the error.
+    }
+  }
+
+  /// Returns true if the device location was found and applied.
+  Future<bool> _useMyLocation({bool quiet = false}) async {
+    setState(() => _locating = true);
+    try {
+      await _setPlace(await LocationService.currentPlace());
+      return true;
+    } catch (e) {
+      if (!quiet && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not get location: $e')));
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _locating = false);
     }
   }
 
@@ -60,17 +100,24 @@ class _HomeScreenState extends State<HomeScreen> {
       delegate: _PlaceSearch(_api),
     );
     if (place == null) return;
-    _place = place;
-    await _reload();
+    await _setPlace(place);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_place.label, overflow: TextOverflow.ellipsis),
+        title: Text(_place?.label ?? 'Finding location…', overflow: TextOverflow.ellipsis),
         actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: _pickPlace),
+          IconButton(
+            tooltip: 'My location',
+            icon: _locating
+                ? const SizedBox(
+                    width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.my_location),
+            onPressed: _locating ? null : _useMyLocation,
+          ),
+          IconButton(tooltip: 'Search', icon: const Icon(Icons.search), onPressed: _pickPlace),
         ],
       ),
       body: RefreshIndicator(
@@ -78,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: FutureBuilder<ForecastData>(
           future: _future,
           builder: (context, snap) {
-            if (snap.connectionState != ConnectionState.done) {
+            if (_future == null || snap.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snap.hasError) {

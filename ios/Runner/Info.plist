@@ -7,7 +7,9 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Rainfall App</string>
+	<string>Rainfall Forecast</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is used to show the rainfall forecast where you are.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

@@ -46,6 +46,17 @@ class Place {
       .whereType<String>()
       .where((s) => s.isNotEmpty)
       .join(', ');
+
+  Map<String, dynamic> toJson() =>
+      {'name': name, 'admin': admin, 'country': country, 'lat': lat, 'lon': lon};
+
+  factory Place.fromJson(Map<String, dynamic> j) => Place(
+        name: j['name'] as String,
+        admin: j['admin'] as String?,
+        country: j['country'] as String?,
+        lat: (j['lat'] as num).toDouble(),
+        lon: (j['lon'] as num).toDouble(),
+      );
 }
 
 /// Forecast for one location from every model, plus ensemble members.
