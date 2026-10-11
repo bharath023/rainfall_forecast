@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -27,14 +30,49 @@ class LocationService {
       throw LocationException('Location permission was denied.');
     }
 
-    // City-level accuracy is plenty for a 10–25 km model grid and saves battery.
-    final pos = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.low,
-        timeLimit: Duration(seconds: 15),
-      ),
-    );
+    final pos = await _position();
     return _reverseGeocode(pos.latitude, pos.longitude);
+  }
+
+  /// City-level accuracy is plenty for a 10–25 km model grid, so try the
+  /// cheapest sources first: a recent cached fix, then a low-power fix
+  /// (Wi-Fi/cell), then GPS. Low-power fixes never arrive on phones where
+  /// network location is off, hence the GPS fallback.
+  static Future<Position> _position() async {
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+    if (!kIsWeb) {
+      final last = await Geolocator.getLastKnownPosition(
+          forceAndroidLocationManager: true);
+      if (last != null &&
+          DateTime.now().difference(last.timestamp) <
+              const Duration(hours: 1)) {
+        return last;
+      }
+    }
+
+    // On Android, use the platform LocationManager rather than Play Services
+    // so users aren't prompted to enable Google Location Accuracy.
+    LocationSettings settings(LocationAccuracy accuracy, int seconds) =>
+        isAndroid
+            ? AndroidSettings(
+                accuracy: accuracy,
+                forceLocationManager: true,
+                timeLimit: Duration(seconds: seconds),
+              )
+            : LocationSettings(
+                accuracy: accuracy,
+                timeLimit: Duration(seconds: seconds),
+              );
+
+    try {
+      return await Geolocator.getCurrentPosition(
+          locationSettings: settings(LocationAccuracy.low, 8));
+    } on TimeoutException {
+      return Geolocator.getCurrentPosition(
+          locationSettings: settings(LocationAccuracy.high, 25));
+    }
   }
 
   /// Free, key-less reverse geocoding (BigDataCloud client endpoint). Falls
