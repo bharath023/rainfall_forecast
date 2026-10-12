@@ -4,7 +4,7 @@ import 'alerts.dart';
 import 'api.dart';
 import 'location.dart';
 import 'models.dart';
-import 'radar.dart';
+import 'rain_map.dart';
 import 'storage.dart';
 import 'widgets.dart';
 
@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: _tab == 1 && _place != null
-          ? RadarView(place: _place!)
+          ? RainMapView(place: _place!)
           : _forecastBody(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
@@ -178,7 +178,8 @@ class _HomeScreenState extends State<HomeScreen> {
         destinations: const [
           NavigationDestination(
               icon: Icon(Icons.water_drop_outlined), label: 'Forecast'),
-          NavigationDestination(icon: Icon(Icons.radar), label: 'Radar'),
+          NavigationDestination(
+              icon: Icon(Icons.map_outlined), label: 'Rain map'),
         ],
       ),
     );
