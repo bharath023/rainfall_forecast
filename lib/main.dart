@@ -8,9 +8,14 @@ import 'rain_map.dart';
 import 'storage.dart';
 import 'widgets.dart';
 
+/// The user's theme choice; System follows the phone's dark-mode setting.
+final themeMode = ValueNotifier(ThemeMode.system);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RainAlerts.init();
+  themeMode.value = ThemeMode.values.asNameMap()[await Storage.themeMode()] ??
+      ThemeMode.system;
   runApp(const RainfallApp());
 }
 
@@ -19,17 +24,21 @@ class RainfallApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Rainfall Forecast',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-          colorSchemeSeed: const Color(0xFF1565C0), useMaterial3: true),
-      darkTheme: ThemeData(
-        colorSchemeSeed: const Color(0xFF1565C0),
-        brightness: Brightness.dark,
-        useMaterial3: true,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeMode,
+      builder: (context, mode, _) => MaterialApp(
+        title: 'Rainfall Forecast',
+        debugShowCheckedModeBanner: false,
+        themeMode: mode,
+        theme: ThemeData(
+            colorSchemeSeed: const Color(0xFF1565C0), useMaterial3: true),
+        darkTheme: ThemeData(
+          colorSchemeSeed: const Color(0xFF1565C0),
+          brightness: Brightness.dark,
+          useMaterial3: true,
+        ),
+        home: const HomeScreen(),
       ),
-      home: const HomeScreen(),
     );
   }
 }
@@ -167,6 +176,30 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: 'Search',
               icon: const Icon(Icons.search),
               onPressed: _pickPlace),
+          PopupMenuButton<ThemeMode>(
+            tooltip: 'Theme',
+            icon: Icon(switch (themeMode.value) {
+              ThemeMode.light => Icons.light_mode,
+              ThemeMode.dark => Icons.dark_mode,
+              ThemeMode.system => Icons.brightness_auto,
+            }),
+            onSelected: (mode) {
+              setState(() => themeMode.value = mode);
+              Storage.setThemeMode(mode.name);
+            },
+            itemBuilder: (context) => [
+              for (final (mode, label) in const [
+                (ThemeMode.system, 'System'),
+                (ThemeMode.light, 'Light'),
+                (ThemeMode.dark, 'Dark'),
+              ])
+                CheckedPopupMenuItem(
+                  value: mode,
+                  checked: themeMode.value == mode,
+                  child: Text(label),
+                ),
+            ],
+          ),
         ],
       ),
       body: _tab == 1 && _place != null

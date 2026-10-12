@@ -9,6 +9,7 @@ class Storage {
   static const _placeKey = 'place';
   static const _alertsKey = 'alerts_enabled';
   static const _lastAlertKey = 'last_alert_ms';
+  static const _themeKey = 'theme_mode';
 
   static Future<Place?> loadPlace() async {
     final prefs = await SharedPreferences.getInstance();
@@ -31,6 +32,13 @@ class Storage {
 
   static Future<void> setAlertsEnabled(bool on) async =>
       (await SharedPreferences.getInstance()).setBool(_alertsKey, on);
+
+  /// 'system', 'light' or 'dark'.
+  static Future<String> themeMode() async =>
+      (await SharedPreferences.getInstance()).getString(_themeKey) ?? 'system';
+
+  static Future<void> setThemeMode(String mode) async =>
+      (await SharedPreferences.getInstance()).setString(_themeKey, mode);
 
   static Future<DateTime?> lastAlert() async {
     final ms = (await SharedPreferences.getInstance()).getInt(_lastAlertKey);

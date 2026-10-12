@@ -236,6 +236,7 @@ class _RainMapViewState extends State<RainMapView> {
   @override
   Widget build(BuildContext context) {
     final center = LatLng(widget.place.lat, widget.place.lon);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
         FlutterMap(
@@ -250,7 +251,9 @@ class _RainMapViewState extends State<RainMapView> {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: dark
+                  ? 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                  : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.rainfall_app',
             ),
             if (_layer == RainLayer.forecast)
@@ -289,6 +292,7 @@ class _RainMapViewState extends State<RainMapView> {
             ]),
             RichAttributionWidget(attributions: [
               const TextSourceAttribution('OpenStreetMap contributors'),
+              if (dark) const TextSourceAttribution('CARTO'),
               TextSourceAttribution(switch (_layer) {
                 RainLayer.forecast => 'Forecast: Open-Meteo',
                 RainLayer.radar => 'Radar: RainViewer',
