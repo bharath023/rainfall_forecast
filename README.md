@@ -4,7 +4,10 @@ Global rainfall forecast app in Flutter (Android + iOS). It combines six global
 weather models and two ensembles, all served through the free Open-Meteo API.
 
 **What it shows**
-- **Today card:** blended rainfall, chance of rain, and how closely the models agree
+- **Headline:** a plain sentence such as "Rain starting in about 25 min" or
+  "Dry for now · rain likely on Friday (65%)", with bars for the next 3 hours
+  in 15-minute steps
+- **Today:** blended rainfall, chance of rain, and how closely the models agree
 - **72-hour chart:** hourly rain from each model, so you can compare
   ECMWF IFS, ECMWF AIFS (AI), GFS, ICON, GEM and JMA
 - **10-day list:** a weighted blend of the models, the chance of rain (≥1 mm) and of
@@ -12,9 +15,13 @@ weather models and two ensembles, all served through the free Open-Meteo API.
   10–90% likely range. Tap a day to see each model's value.
 - **Location:** GPS ("my location" button, at city-level accuracy) or search for
   any place worldwide. The app remembers the last place you viewed.
-- **Radar tab:** an animated map of the past ~2 hours of radar in 10-minute steps
-  (RainViewer), with play/pause and a time slider. RainViewer's free radar covers
-  mainly North America, Europe, Australia and parts of Asia; India's coverage is limited.
+- **Rain map tab** with three layers:
+  - **Forecast:** model rain for the next 48 hours, with a model switcher,
+    timeline and play button
+  - **Radar:** the past ~2 hours from RainViewer (mainly North America, Europe,
+    Australia and parts of Asia; little coverage over India)
+  - **Satellite:** NASA GPM IMERG rain, global including India and the oceans,
+    usually 4–6 hours old
 - **Rain alerts (bell icon):** about every 30 minutes the phone checks the next
   3 hours at your saved place. It notifies you if ≥0.5 mm of rain or a ≥60% chance
   is expected, at most once every 3 hours. This runs on the phone, with no server.
@@ -56,7 +63,9 @@ use a server with push notifications (see Next steps).
 | `lib/blend.dart` | Weighted blend, rain probability, percentiles, model agreement |
 | `lib/widgets.dart` | Today card, hourly chart, daily tiles |
 | `lib/location.dart` | GPS position and place name (BigDataCloud reverse geocoding) |
-| `lib/radar.dart` | Radar tab: RainViewer frames on a flutter_map map |
+| `lib/rain_map.dart` | Rain map tab: forecast grid, radar and satellite layers |
+| `lib/forecast_grid.dart` | Fetches model rain on a grid of points and colours it |
+| `lib/summary.dart` | The headline sentence and 15-minute steps |
 | `lib/alerts.dart` | Background rain check (workmanager) and notifications |
 | `lib/storage.dart` | Saved place and alert settings (shared_preferences) |
 | `lib/main.dart` | App shell, tabs, city search |
