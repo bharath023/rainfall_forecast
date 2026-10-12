@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'blend.dart';
 import 'models.dart';
+import 'summary.dart';
 
 String _mm(double? v) => v == null ? '–' : '${v.toStringAsFixed(1)} mm';
 String _pct(double? v) => v == null ? '–' : '${(v * 100).round()}%';
@@ -16,7 +17,8 @@ IconData rainIcon(double? mm) {
   return Icons.thunderstorm;
 }
 
-/// Headline card for today: blended total, chance of rain, model agreement.
+/// Headline card: a plain-language sentence, today's numbers, and the
+/// 15-minute rain bars for the next ~3 hours.
 class TodayCard extends StatelessWidget {
   final ForecastData data;
   const TodayCard({super.key, required this.data});
@@ -27,29 +29,120 @@ class TodayCard extends StatelessWidget {
     final members =
         data.ensembleDaily.isNotEmpty ? data.ensembleDaily[0] : <double>[];
     final theme = Theme.of(context);
+    final now = data.locationNowExact;
+    final steps = upcomingSteps(data, now).take(12).toList();
+    final nowRainy = steps.isNotEmpty && steps.first.isRainy;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(rainIcon(blended), size: 56, color: theme.colorScheme.primary),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Today', style: theme.textTheme.labelLarge),
-                  Text(_mm(blended), style: theme.textTheme.headlineMedium),
-                  Text(
-                      'Chance of rain (≥1 mm): ${_pct(probability(members, 1))}'),
-                  Text(
-                      'Model agreement: ${agreementLabel(modelSpreadAt(data.daily, 0))}'),
-                ],
+            Row(children: [
+              Icon(nowRainy ? Icons.water_drop : rainIcon(blended),
+                  size: 40, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(headline(data, now: now),
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w600)),
               ),
+            ]),
+            const SizedBox(height: 8),
+            Text(
+              'Today ${_mm(blended)} · chance ${_pct(probability(members, 1))}'
+              ' · models agree: ${agreementLabel(modelSpreadAt(data.daily, 0))}',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
+            if (steps.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              NowcastBars(steps: steps),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Bars for each 15-minute step: height = rain amount, with a faint
+/// background bar for the chance of rain.
+class NowcastBars extends StatelessWidget {
+  final List<NowcastStep> steps;
+  const NowcastBars({super.key, required this.steps});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // Scale so light rain is visible but heavy rain still fits: 2 mm per 15 min
+    // (8 mm/h) fills the bar.
+    const fullMm = 2.0;
+    const barHeight = 56.0;
+    final hm = DateFormat('HH:mm');
+    final noRain = steps.every((s) => s.mm < nowcastRainMm);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(noRain ? 'Next 3 hours · no rain expected' : 'Next 3 hours',
+            style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: barHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (final s in steps)
+                Expanded(
+                  child: Tooltip(
+                    message: '${hm.format(s.start)}: '
+                        '${s.mm.toStringAsFixed(1)} mm · ${s.probability}%',
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          height: barHeight * s.probability / 100,
+                          decoration: BoxDecoration(
+                            color: scheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          height: s.mm <= 0
+                              ? 2
+                              : (barHeight * s.mm / fullMm)
+                                  .clamp(4.0, barHeight),
+                          decoration: BoxDecoration(
+                            color: s.mm < nowcastRainMm
+                                ? scheme.outlineVariant
+                                : scheme.primary,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Now', style: TextStyle(fontSize: 11)),
+            if (steps.length > 6)
+              Text(hm.format(steps[steps.length ~/ 2].start),
+                  style: const TextStyle(fontSize: 11)),
+            Text(hm.format(steps.last.start.add(const Duration(minutes: 15))),
+                style: const TextStyle(fontSize: 11)),
+          ],
+        ),
+      ],
     );
   }
 }

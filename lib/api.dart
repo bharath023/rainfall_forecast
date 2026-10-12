@@ -55,9 +55,18 @@ class OpenMeteoApi {
         'daily': 'precipitation_sum',
         'models': ensembleModels.join(','),
       })),
+      // 15-minute steps for the next ~3 hours (best-match model blend).
+      _get(Uri.https('api.open-meteo.com', '/v1/forecast', {
+        'latitude': '${place.lat}',
+        'longitude': '${place.lon}',
+        'timezone': 'auto',
+        'minutely_15': 'precipitation,precipitation_probability',
+        'forecast_minutely_15': '14',
+      })),
     ]);
     final det = responses[0];
     final ens = responses[1];
+    final m15 = responses[2]['minutely_15'] as Map<String, dynamic>? ?? {};
 
     final hourlyJson = det['hourly'] as Map<String, dynamic>;
     final dailyJson = det['daily'] as Map<String, dynamic>;
@@ -94,6 +103,9 @@ class OpenMeteoApi {
       days: _timeList(dailyJson['time']),
       daily: daily,
       ensembleDaily: ensembleDaily,
+      nowcastTime: m15['time'] == null ? const [] : _timeList(m15['time']),
+      nowcastMm: _numList(m15['precipitation']),
+      nowcastProbability: _numList(m15['precipitation_probability']),
     );
   }
 

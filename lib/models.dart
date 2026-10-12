@@ -80,6 +80,12 @@ class ForecastData {
   /// For each day, the daily total from every ensemble member.
   final List<List<double>> ensembleDaily;
 
+  /// 15-minute steps for the next ~3 hours: start time of each step, rain in
+  /// that step (mm) and chance of rain (%).
+  final List<DateTime> nowcastTime;
+  final List<double?> nowcastMm;
+  final List<double?> nowcastProbability;
+
   const ForecastData({
     required this.utcOffsetSeconds,
     required this.hourlyTime,
@@ -87,7 +93,16 @@ class ForecastData {
     required this.days,
     required this.daily,
     required this.ensembleDaily,
+    this.nowcastTime = const [],
+    this.nowcastMm = const [],
+    this.nowcastProbability = const [],
   });
+
+  /// Current wall-clock minute at the forecast location.
+  DateTime get locationNowExact {
+    final t = DateTime.now().toUtc().add(Duration(seconds: utcOffsetSeconds));
+    return DateTime(t.year, t.month, t.day, t.hour, t.minute);
+  }
 
   /// Current wall-clock hour at the forecast location (times from the API are
   /// in the location's own timezone, not the phone's).
